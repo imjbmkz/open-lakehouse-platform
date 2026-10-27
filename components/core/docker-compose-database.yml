@@ -1,0 +1,38 @@
+services:
+
+  # ============================================================
+  # 2.0 - PostgreSQL database for metastore and OLTP workloads
+  # ============================================================
+  olh-postgres-db:
+    image: postgres:16-alpine
+    container_name: olh-postgres-db
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - ${POSTGRES_PORT}:5432
+    volumes:
+      - olh_postgres_data:/var/lib/postgresql/data
+      - ./configurations/init.sh:/docker-entrypoint-initdb.d/init.sh
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  olh_postgres_data:
+    driver: local
+
+networks:
+  olh-network:
+    driver: bridge

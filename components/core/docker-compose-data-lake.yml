@@ -1,0 +1,50 @@
+services:
+
+  # ============================================================
+  # 1.0 - SeaweedFS for S3-like storage (for lakehouse storage)
+  # ============================================================
+  olh-seaweedfs:
+    image: chrislusf/seaweedfs:4.50
+    container_name: olh-seaweedfs-dl
+    command: "mini -dir=/data"
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY} 
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_KEY} 
+      S3_BUCKET: ${S3_BUCKET}
+    
+    # host:container port mapping. Make sure that the host ports 
+    # are available and not used in other compose files
+    ports:
+      - "8333:8333"   # S3 API
+      - "9333:9333"   # Master UI
+      - "8889:8888"   # Filer UI
+    volumes:
+      - olh-seaweedfs-dl:/data
+  
+  # ============================================================
+  # 1.1 - SeaweedFS initialization to create data-lake bucket
+  # ============================================================
+  olh-seaweedfs-init:
+    image: chrislusf/seaweedfs:4.50
+    container_name: olh-seaweedfs-init
+
+    depends_on:
+      - olh-seaweedfs-dl
+
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        sleep 5
+        echo "s3.bucket.create -name ${AWS_DATA_LAKE_BUCKET}" | \
+          weed shell \
+            -master=olh-seaweedfs-dl:9333 \
+            -filer=olh-seaweedfs-dl:8888
+
+volumes:
+  olh-seaweedfs-dl:
+    driver: local
+
+networks:
+  olh-network:
+    driver: bridge
