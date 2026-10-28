@@ -8,9 +8,9 @@ services:
     container_name: olh-seaweedfs-dl
     command: "mini -dir=/data"
     environment:
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY} 
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_KEY} 
-      S3_BUCKET: ${S3_BUCKET}
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY} 
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY} 
+      S3_BUCKET: ${S3_LAKEHOUSE_BUCKET}
     
     # host:container port mapping. Make sure that the host ports 
     # are available and not used in other compose files
@@ -36,7 +36,7 @@ services:
       - -c
       - |
         sleep 5
-        echo "s3.bucket.create -name ${AWS_DATA_LAKE_BUCKET}" | \
+        echo "s3.bucket.create -name ${S3_DATA_LAKE_BUCKET}" | \
           weed shell \
             -master=olh-seaweedfs-dl:9333 \
             -filer=olh-seaweedfs-dl:8888
