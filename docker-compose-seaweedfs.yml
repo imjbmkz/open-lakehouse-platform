@@ -5,7 +5,7 @@ services:
   # ============================================================
   olh-seaweedfs:
     image: chrislusf/seaweedfs:4.50
-    container_name: olh-seaweedfs-dl
+    container_name: olh-seaweedfs
     command: "mini -dir=/data"
     environment:
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY} 
@@ -19,7 +19,7 @@ services:
       - "9333:9333"   # Master UI
       - "8889:8888"   # Filer UI
     volumes:
-      - olh-seaweedfs-dl:/data
+      - olh-seaweedfs:/data
   
   # ============================================================
   # 1.1 - SeaweedFS initialization to create data-lake bucket
@@ -29,7 +29,7 @@ services:
     container_name: olh-seaweedfs-init
 
     depends_on:
-      - olh-seaweedfs-dl
+      - olh-seaweedfs
 
     entrypoint: /bin/sh
     command:
@@ -38,11 +38,11 @@ services:
         sleep 5
         echo "s3.bucket.create -name ${S3_DATA_LAKE_BUCKET}" | \
           weed shell \
-            -master=olh-seaweedfs-dl:9333 \
-            -filer=olh-seaweedfs-dl:8888
+            -master=olh-seaweedfs:9333 \
+            -filer=olh-seaweedfs:8888
 
 volumes:
-  olh-seaweedfs-dl:
+  olh-seaweedfs:
     driver: local
 
 networks:
