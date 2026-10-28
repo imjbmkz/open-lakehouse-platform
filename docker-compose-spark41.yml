@@ -28,8 +28,8 @@ services:
       - SPARK_MASTER_PORT=7078
       - SPARK_MASTER_WEBUI_PORT=8082
     ports:
-      - "7078:7078"   # master RPC
-      - "8082:8082"   # master UI
+      - 7078:7078   # master RPC
+      - 8082:8082   # master UI
     volumes:
       - olh-spark-data:/opt/olh-spark-data
       - ./config/spark:/opt/spark/conf
@@ -39,18 +39,18 @@ services:
       - ./ivy-cache:/root/.ivy2
       - ./data:/data
     post_start:
-      - command: bash -c "mkdir -p /opt/spark-data/logs; chown -R 185 /opt/spark-data; chmod -R g+w /opt/spark-data; chmod g+s /opt/spark-data"
+      - command: bash -c "mkdir -p /opt/olh-spark-data/logs; chown -R 185 /opt/olh-spark-data; chmod -R g+w /opt/olh-spark-data; chmod g+s /opt/olh-spark-data"
         user: root
     command: >
       bash -c "
         export SPARK_LOCAL_IP=$$(hostname -i | tr ' ' '\n' | grep -vE '^127\.' | head -1);
         export SPARK_PUBLIC_DNS=$$SPARK_LOCAL_IP;
-        echo \"spark-master binding/advertising $$SPARK_LOCAL_IP:7078\";
+        echo \"olh-spark-master binding/advertising $$SPARK_LOCAL_IP:7078\";
         /opt/spark/sbin/start-master.sh --host $$SPARK_LOCAL_IP --port 7078 --webui-port 8082 &&
         tail -f /opt/spark/logs/*
         "
     networks:
-      - lakehouse-network
+      - olh-network
 
   olh-spark-worker-41:
     image: apache/spark:4.1.0-scala2.13-java21-python3-r-ubuntu
@@ -63,27 +63,27 @@ services:
     ports:
       - "8083:8083"   # worker UI
     volumes:
-      - spark-data:/opt/spark-data
+      - olh-spark-data:/opt/olh-spark-data
       - ./config/spark:/opt/spark/conf
       - ./notebooks:/notebooks
       - ./jars:/opt/spark/jars-extra
       - ./scripts:/scripts
       - ./data:/data
     depends_on:
-      - spark-master-41
+      - olh-spark-master-41
     post_start:
-      - command: bash -c "mkdir -p /opt/spark-data/logs; chown -R 185 /opt/spark-data; chmod -R g+w /opt/spark-data; chmod g+s /opt/spark-data"
+      - command: bash -c "mkdir -p /opt/olh-spark-data/logs; chown -R 185 /opt/olh-spark-data; chmod -R g+w /opt/olh-spark-data; chmod g+s /opt/olh-spark-data"
         user: root
     command: >
       bash -c "
         export SPARK_LOCAL_IP=$$(hostname -i | tr ' ' '\n' | grep -vE '^127\.' | head -1);
         export SPARK_PUBLIC_DNS=$$SPARK_LOCAL_IP;
         sleep 5 &&
-        /opt/spark/sbin/start-worker.sh spark://spark-master-41:7078 --webui-port 8083 &&
+        /opt/spark/sbin/start-worker.sh spark://olh-spark-master-41:7078 --webui-port 8083 &&
         tail -f /opt/spark/logs/*
         "
     networks:
-      - lakehouse-network
+      - olh-network
 
   # Spark Connect server — Connect-first architecture. Required for SDP and the
   # default client transport. gRPC on 15002 (published, so sc://localhost:15002
@@ -103,34 +103,34 @@ services:
     ports:
       - "15002:15002"   # Spark Connect gRPC
     volumes:
-      - spark-data:/opt/spark-data
+      - olh-spark-data:/opt/olh-spark-data
       - ./config/spark:/opt/spark/conf
       - ./jars:/opt/spark/jars-extra
       - ./scripts:/scripts
       - ./data:/data
       - ./ivy-cache:/root/.ivy2
     depends_on:
-      - spark-master-41
-      - spark-worker-41
+      - olh-spark-master-41
+      - olh-spark-worker-41
     command: >
       bash -c "
         export SPARK_LOCAL_IP=$$(hostname -i | tr ' ' '\n' | grep -vE '^127\.' | head -1);
         export SPARK_PUBLIC_DNS=$$SPARK_LOCAL_IP;
         sleep 10 &&
         /opt/spark/sbin/start-connect-server.sh
-        --master spark://spark-master-41:7078
+        --master spark://olh-spark-master-41:7078
         --conf spark.connect.grpc.binding.port=15002
         --conf spark.connect.grpc.binding.host=0.0.0.0
         "
     networks:
-      - lakehouse-network
+      - olh-network
 
 volumes:
-  spark-data:
+  olh-spark-data:
     driver: local
-  spark-logs:
+  olh-spark-logs:
     driver: local
 
 networks:
-  lakehouse-network:
+  olh-network:
     driver: bridge
