@@ -3,9 +3,9 @@ services:
   # ============================================================
   # 2.0 - PostgreSQL database for metastore and OLTP workloads
   # ============================================================
-  olh-postgres-db:
+  olh-postgres:
     image: postgres:16-alpine
-    container_name: olh-postgres-db
+    container_name: olh-postgres
     restart: always
     shm_size: 128mb
     environment:
@@ -30,7 +30,7 @@ services:
       start_period: 10s
 
 volumes:
-  olh_postgres_data:
+  olh-postgres:
     driver: local
 
 networks:
